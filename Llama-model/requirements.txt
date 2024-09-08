@@ -1,0 +1,6 @@
+torch~=2.4.1+cu124
+transformers~=4.44.2
+accelerate~=0.34.2
+huggingface-hub~=0.24.6
+bitsandbytes~=0.43.3
+fastapi
