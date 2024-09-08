@@ -1,5 +1,9 @@
+from typing import Optional
+
 import torch
 import transformers
+
+from data_classes import Message
 
 
 class Llama3:
@@ -17,17 +21,21 @@ class Llama3:
             }
         )
 
-    def get_response(self, query: str,
-                     prompt: str = "You are an AI assistant that provides concise and accurate answers.Make proper use of markdown in your answer.The user will prompt you with something and you must add your answer after `-AI:`.\n",
-                     user_role: str = "User", ai_role="AI", post_process: bool = True,
-                     max_tokens: int = 256, temperature: float = 0.7, top_p: float = 0.9,
-                     top_k: int = 50, repetition_penalty: float = 1.2, stop_words: list = None) -> \
+    def get_response(self, query: str, history: Optional[list[Message]],
+                     prompt: str = "You are an AI assistant that provides concise and accurate answers.",
+                     user_role: str = "user", ai_role="model", post_process: bool = True,
+                     max_tokens: int = 256, temperature: float = 0.7, top_p: float = 0.9, min_p: float = 0.02,
+                     top_k: int = 50, repetition_penalty: float = 1.05, stop_words: list = None) -> \
             (tuple[str, str]):
 
         # Prompt Engineering for the model
+        past_messages = ""
+        for message in history:
+            past_messages = str(message) + past_messages
         self.prompt = (
                 prompt +
-                "|||\n"
+                past_messages +
+                "---\n"
                 f"- {user_role}: {query}\n"
                 f"- {ai_role}:"
         )
@@ -39,6 +47,9 @@ class Llama3:
             temperature=temperature,
             top_p=top_p,
             top_k=top_k,
+            min_p=min_p,
+            min_length=30,
+            no_repeat_ngram_size=2,
             repetition_penalty=repetition_penalty,
             eos_token_id=self.pipeline.tokenizer.eos_token_id,
         )
@@ -72,7 +83,7 @@ class Llama3:
         :return: The cleaned response.
         """
         # List of valid punctuation marks
-        valid_punctuations = ('.', '!', '?', ';', ')', '}', ']', "'", '"')
+        valid_punctuations = ('.', '!', '?', ';', ')', '}', ']', "'", '"', '`')
 
         # Find the last valid punctuation
         last_punctuation_index = max(response.rfind(punc) for punc in valid_punctuations)

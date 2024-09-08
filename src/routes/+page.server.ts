@@ -1,5 +1,5 @@
 import type { Actions, PageServerLoad } from './$types';
-import { addMessage, getAllMessages } from '$lib/database/messages';
+import { addMessage, getAllMessages, getHistory } from '$lib/database/messages';
 import { Sender } from '$lib/index';
 import { fail } from '@sveltejs/kit';
 
@@ -17,6 +17,7 @@ export const actions = {
 		if (trimmedMessage === '')
 			return;
 
+		const history = await getHistory(10);
 		await addMessage(userQuery, Sender.User);
 
 		let response;
@@ -26,7 +27,10 @@ export const actions = {
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ query: userQuery })
+				body: JSON.stringify({
+					query: userQuery,
+					history: history
+				})
 			});
 		} catch {
 			return fail(400, { error: 'Model server is not online', no_response: true });
